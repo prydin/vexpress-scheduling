@@ -1,5 +1,5 @@
 count: 1
-catalogItemName: "postgresql-latest-ubuntu-18"
+catalogItemName: "rabbitmq-latest-ubuntu-18"
 version: "5"
 deploymentName: "vexpress-zipcode-db-#"
 projectName: "JenkinsTest"
@@ -8,5 +8,5 @@ inputs:
   environment: "AWS"
   user: "$USER"
   password: "$PASSWORD"
-  dbuser: "$DBUSER"
-  dbpassword: "$DBPASSWORD"
+  rabbitUser: "$RABBIT_USER"
+  rabbitPassword: "$RABBIT_PASSWORD"

@@ -30,7 +30,7 @@ pipeline {
 
         stage('Publish') {
             steps {
-                archiveArtifacts(artifacts: "build/libs/vexpress-pricing-${env.version}.jar", fingerprint: true, onlyIfSuccessful: true)
+                archiveArtifacts(artifacts: "build/libs/vexpress-scheduling-${env.version}.jar", fingerprint: true, onlyIfSuccessful: true)
             }
         }
 
@@ -47,48 +47,68 @@ pipeline {
 
         stage('DeployVMs') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'sshCreds', passwordVariable: 'PASSWORD', usernameVariable: 'USER')]) {
-                    script {
-                        def depId = vraDeployFromCatalog(
-                                configFormat: "yaml",
-                                config: readFile('infra/appserver.yaml'))[0].id
-                        vraWaitForAddress(
-                                deploymentId: depId,
-                                resourceName: 'JavaServer')[0]
-                        env.appIp = getInternalAddress(depId, "JavaServer")
-                        echo "Deployed: ${depId} address: ${env.appIp}"
-                    }
-                }
+                parallel(
+                        "appServer": {
+                            withCredentials([usernamePassword(credentialsId: 'sshCreds', passwordVariable: 'PASSWORD', usernameVariable: 'USER')]) {
+                                script {
+                                    def depId = vraDeployFromCatalog(
+                                            configFormat: "yaml",
+                                            config: readFile('infra/appserver.yaml'))[0].id
+                                    vraWaitForAddress(
+                                            deploymentId: depId,
+                                            resourceName: 'JavaServer')[0]
+                                    env.appIp = getInternalAddress(depId, "JavaServer")
+                                    echo "Deployed: ${depId} address: ${env.appIp}"
+                                }
+                            }
+                        },
+                        "rabbitServer": {
+                            withCredentials([usernamePassword(credentialsId: 'sshCreds', passwordVariable: 'PASSWORD', usernameVariable: 'USER'),
+                                             usernamePassword(credentialsId: 'rabbitMqCreds', passwordVariable: 'RABBIT_PASSWORD', usernameVariable: 'RABBIT_USER')]) {
+                                script {
+                                    def depId = vraDeployFromCatalog(
+                                            configFormat: "yaml",
+                                            config: readFile('infra/rabbitserver.yaml'))[0].id
+                                    vraWaitForAddress(
+                                            deploymentId: depId,
+                                            resourceName: 'RabbitMQ')[0]
+                                    env.rabbitIp = getInternalAddress(depId, "RabbitMQ")
+                                    echo "Deployed: ${depId} address: ${env.appIp}"
+                                }
+                            }
+                        },
+                )
             }
         }
+    }
 
-        stage('Configure') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'sshCreds', passwordVariable: 'PASSWORD', usernameVariable: 'USER')]) {
-                    script {
-                        def zipUrl = params.ZIPCODE_URL ? params.ZIPCODE_URL : env.DEFAULT_ZIPCODE_URL
-                        echo "Zipcode service URL: ${zipUrl}"
-                        def txt = readFile(file: 'templates/application-properties.tpl')
-                        txt = txt.replace('$ZIPCODE_URL', zipUrl)
-                        writeFile(file: "application.properties", text: txt)
+    stage('Configure') {
+        steps {
+            withCredentials([usernamePassword(credentialsId: 'sshCreds', passwordVariable: 'PASSWORD', usernameVariable: 'USER'),
+                             usernamePassword(credentialsId: 'rabbitMqCreds', passwordVariable: 'RABBIT_PASSWORD', usernameVariable: 'RABBIT_USER')]) {
+                script {
+                    def txt = readFile(file: 'templates/application-properties.tpl')
+                    txt = txt.replace('$RABBITMQ_URL', env.rabbitIp).
+                            replace('$RABBIT_USER', env.RABBIT_USER).
+                            replace('$RABBIT_PASSWORD', env.RABBIT_PASSWORD)
+                    writeFile(file: "application.properties", text: txt)
 
-                        def remote = [:]
-                        remote.name = 'appServer'
-                        remote.host = env.appIp
-                        remote.user = USER
-                        remote.password = PASSWORD
-                        remote.allowAnyHosts = true
+                    def remote = [:]
+                    remote.name = 'appServer'
+                    remote.host = env.appIp
+                    remote.user = USER
+                    remote.password = PASSWORD
+                    remote.allowAnyHosts = true
 
-                        // The first first attempt may fail if cloud-init hasn't created user account yet
-                        retry(20) {
-                            sleep time: 10, unit: 'SECONDS'
-                            sshPut remote: remote, from: 'application.properties', into: '/tmp'
-                        }
-                        sshPut remote: remote, from: 'scripts/vexpress-pricing.service', into: '/tmp'
-                        sshPut remote: remote, from: 'scripts/configureAppserver.sh', into: '/tmp'
-                        sshCommand remote: remote, command: 'chmod +x /tmp/configureAppserver.sh'
-                        sshCommand remote: remote, sudo: true, command: "/tmp/configureAppserver.sh ${USER} ${env.apiUser} ${env.apiToken} ${env.BUILD_URL} ${env.version}"
+                    // The first first attempt may fail if cloud-init hasn't created user account yet
+                    retry(20) {
+                        sleep time: 10, unit: 'SECONDS'
+                        sshPut remote: remote, from: 'application.properties', into: '/tmp'
                     }
+                    sshPut remote: remote, from: 'scripts/vexpress-scheduling.service', into: '/tmp'
+                    sshPut remote: remote, from: 'scripts/configureAppserver.sh', into: '/tmp'
+                    sshCommand remote: remote, command: 'chmod +x /tmp/configureAppserver.sh'
+                    sshCommand remote: remote, sudo: true, command: "/tmp/configureAppserver.sh ${USER} ${env.apiUser} ${env.apiToken} ${env.BUILD_URL} ${env.version}"
                 }
             }
         }
