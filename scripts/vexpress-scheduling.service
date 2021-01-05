@@ -1,0 +1,9 @@
+[Unit]
+Description=vExpress Scheduling
+
+[Service]
+WorkingDirectory=/opt/vexpress-pricing
+ExecStart=/usr/bin/java -Xmx512m -jar /opt/vexpress-scheduling/vexpress-scheduling.jar
+
+[Install]
+WantedBy=multi-user.target
