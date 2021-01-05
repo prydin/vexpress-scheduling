@@ -1,0 +1,163 @@
+---
+project: Pontus Project
+kind: PIPELINE
+name: vexport-zipcode-ci
+icon: organization,left, is-info is-solid
+enabled: true
+concurrency: 10
+input:
+  artifactory_apikey:
+  artifactory_url:
+  db_password:
+  db_user: dbuser
+  vm_password:
+  vm_user: demouser
+_inputMeta:
+  vm_user:
+    mandatory: true
+    description: VM User
+  artifactory_url:
+    mandatory: true
+    description: Artifactory URL
+  db_user:
+    mandatory: true
+    description: Database User
+  artifactory_apikey:
+    mandatory: true
+    description: Artifactory API Key
+  vm_password:
+    mandatory: true
+    description: VM Password
+  db_password:
+    mandatory: true
+    description: Database Password
+workspace:
+  endpoint: WF Lab
+  image: prydin/ci-build-jdk11
+  registry: ''
+  path: /local/git
+  cache:
+    - /root/.gradle
+    - /root/.m2
+  autoCloneForTrigger: false
+  limits:
+    cpu: 1.0
+    memory: 512
+stageOrder:
+  - Build
+  - Test-Stage
+  - CleanUp
+stages:
+  Build:
+    taskOrder:
+      - Build and smoketest
+      - Push to Artifactory
+    tasks:
+      Build and smoketest:
+        type: CI
+        input:
+          steps:
+            - cd /local/git/
+            - git clone https://github.com/prydin/vexpress
+            - cd vexpress/zipcode
+            - ./gradlew clean build test
+          export: [
+          ]
+          artifacts: [
+          ]
+          process: [
+          ]
+      Push to Artifactory:
+        type: CI
+        input:
+          steps:
+            - export JFROG_CLI_OFFER_CONFIG=false
+            - jfrog rt u --user admin --apikey ${input.artifactory_apikey} --url ${input.artifactory_url}
+              vexpress/zipcode/build/libs/zipcode-*.jar generic-local
+          export: [
+          ]
+          artifacts: [
+          ]
+          process: [
+          ]
+  Test-Stage:
+    taskOrder:
+      - AppServer,DBServer
+      - Configure DB,Configure AppServer
+    tasks:
+      AppServer:
+        type: Blueprint
+        input:
+          action: CreateDeployment
+          blueprint: java-14-ubuntu-18
+          deploymentName: ''
+          parameters:
+            password: ${input.vm_password}
+            environment: vSphere
+            user: ${input.vm_user}
+          version: '2'
+          filepath: ''
+      Configure AppServer:
+        type: SSH
+        endpoints:
+          agent: WF SSH Endpoint
+        input:
+          script: echo Hello
+          username: ${input.vm_user}
+          password: ${input.vm_password}
+          passphrase: ''
+          privatekey: ''
+          host: ${Test-Stage.AppServer.output.deploymentDetails.resources.AppServer.address}
+          workingDirectory: ''
+          arguments: [
+          ]
+          environmentVariables: {
+          }
+          continueOnCommandFailure: false
+      DBServer:
+        type: Blueprint
+        input:
+          action: CreateDeployment
+          blueprint: postgresql-latest-ubuntu-18
+          deploymentName: ''
+          parameters:
+            password: ${input.vm_password}
+            environment: vSphere
+            dbpassword: ${input.db_password}
+            dbuser: ${input.db_user}
+            user: ${input.vm_user}
+          version: '1'
+          filepath: ''
+      Configure DB:
+        type: SSH
+        endpoints:
+          agent: WF SSH Endpoint
+        input:
+          script: "cd /tmp\ngit clone https://github.com/prydin/vexpress\necho \"create database zipcodes\"\
+            \ | sudo -u postgres psql \nsudo -u postgres psql < vexpress/zipcode/src/main/sql/initPostgres.sql"
+          username: ${input.vm_user}
+          password: ${input.vm_password}
+          passphrase: ''
+          privatekey: ''
+          host: ${Test-Stage.DBServer.output.deploymentDetails.resources.DBServer.address}
+          workingDirectory: ''
+          arguments: [
+          ]
+          environmentVariables: {
+          }
+          continueOnCommandFailure: false
+  CleanUp:
+    taskOrder:
+      - DeleteAppServer,DeleteDBServer
+    tasks:
+      DeleteAppServer:
+        type: Blueprint
+        input:
+          action: DeleteDeployment
+          deploymentName: ${Test-Stage.AppServer.output.deploymentName}
+      DeleteDBServer:
+        type: Blueprint
+        input:
+          action: DeleteDeployment
+          deploymentName: ${Test-Stage.DBServer.output.deploymentName}
+          _deploymentFlag: false
