@@ -81,12 +81,12 @@ pipeline {
         stage('Configure') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'sshCreds', passwordVariable: 'PASSWORD', usernameVariable: 'USER'),
-                                 usernamePassword(credentialsId: 'rabbitMqCreds', passwordVariable: 'RABBIT_PASSWORD', usernameVariable: 'RABBIT_USER')]) {
+                                 usernamePassword(credentialsId: 'rabbitMqCreds', passwordVariable: 'RABBITMQ_PASSWORD', usernameVariable: 'RABBITMQ_USER')]) {
                     script {
                         def txt = readFile(file: 'templates/application-properties.tpl')
-                        txt = txt.replace('$RABBITMQ_URL', env.rabbitIp).
-                                replace('$RABBIT_USER', env.RABBIT_USER).
-                                replace('$RABBIT_PASSWORD', env.RABBIT_PASSWORD)
+                        txt = txt.replace('$RABBITMQ_IP', env.rabbitIp).
+                                replace('$RABBITMQ_USER', env.RABBIT_USER).
+                                replace('$RABBITMQ_PASSWORD', env.RABBIT_PASSWORD)
                         writeFile(file: "application.properties", text: txt)
 
                         def remote = [:]
