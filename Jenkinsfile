@@ -5,9 +5,6 @@ pipeline {
         stage('Init') {
             steps {
                 script {
-                    properties([parameters([string(defaultValue: '',
-                            description: 'The zipcode service URL', name: 'ZIPCODE_URL', trim: false)])])
-                    def r = /version\s*=\s*["'](.+)["']/
                     def gradle = readFile(file: 'build.gradle')
                     env.version = (gradle =~ /version\s*=\s*["'](.+)["']/)[0][1]
                     echo "Inferred version: ${env.version}"
