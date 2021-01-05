@@ -85,8 +85,8 @@ pipeline {
                     script {
                         def txt = readFile(file: 'templates/application-properties.tpl')
                         txt = txt.replace('$RABBITMQ_IP', env.rabbitIp).
-                                replace('$RABBITMQ_USER', env.RABBIT_USER).
-                                replace('$RABBITMQ_PASSWORD', env.RABBIT_PASSWORD)
+                                replace('$RABBITMQ_USER', env.RABBITMQ_USER).
+                                replace('$RABBITMQ_PASSWORD', env.RABBITMQ_PASSWORD)
                         writeFile(file: "application.properties", text: txt)
 
                         def remote = [:]
