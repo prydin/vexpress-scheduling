@@ -10,3 +10,4 @@ inputs:
   password: "$PASSWORD"
   rabbitUser: "$RABBIT_USER"
   rabbitPassword: "$RABBIT_PASSWORD"
+  rabbitVhost: "vexpress"
