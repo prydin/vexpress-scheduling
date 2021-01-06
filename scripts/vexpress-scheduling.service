@@ -2,7 +2,7 @@
 Description=vExpress Scheduling
 
 [Service]
-WorkingDirectory=/opt/vexpress-pricing
+WorkingDirectory=/opt/vexpress-scheduling
 ExecStart=/usr/bin/java -Xmx512m -jar /opt/vexpress-scheduling/vexpress-scheduling.jar
 
 [Install]
