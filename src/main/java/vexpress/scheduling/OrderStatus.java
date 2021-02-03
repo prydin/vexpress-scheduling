@@ -14,4 +14,12 @@ public class OrderStatus extends SchedulingRequest {
         sr.getTimeSubmitted());
     status = System.currentTimeMillis() - sr.getTimeSubmitted() > 30000 ? "Delivered" : "Shipped";
   }
+
+  public String getStatus() {
+    return status;
+  }
+
+  public void setStatus(final String status) {
+    this.status = status;
+  }
 }
