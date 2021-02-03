@@ -15,7 +15,7 @@ public class SchedulingController {
   }
 
   @GetMapping(value = "/orders", produces = "application/json")
-  public Collection<SchedulingRequest> getOrders() throws JsonProcessingException {
+  public Collection<OrderStatus> getOrders() throws JsonProcessingException {
     return orderRepository.getOrders().stream()
         .map(v -> new OrderStatus(v))
         .collect(Collectors.toList());
