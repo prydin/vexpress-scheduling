@@ -109,6 +109,15 @@ pipeline {
                 }
             }
         }
+        stage("Finalize") {
+            steps {
+                // Store build state
+                withAWS(credentials: 'jenkins') {
+                    writeJSON(file: 'state.json', json: ['url': "http://${env.appIp}:8080", "rabbitMqIp": env.rabbitIp])
+                    s3Upload(file: 'state.json', bucket: 'prydin-build-states', path: 'vexpress/scheduling/prod/state.json')
+                }
+            }
+        }
     }
 }
 
