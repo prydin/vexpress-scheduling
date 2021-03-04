@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    parameters {
+        string(defaultValue: 'dev', description: 'Target environment', name: 'ENVIRONMENT', trim: true)
+    }
+
     stages {
         stage('Init') {
             steps {
@@ -8,6 +12,7 @@ pipeline {
                     def gradle = readFile(file: 'build.gradle')
                     env.version = (gradle =~ /version\s*=\s*["'](.+)["']/)[0][1]
                     echo "Inferred version: ${env.version}"
+                    env.ENVIRONMENT = params.ENVIRONMENT
                 }
             }
         }
@@ -114,7 +119,7 @@ pipeline {
                 // Store build state
                 withAWS(credentials: 'jenkins') {
                     writeJSON(file: 'state.json', json: ['url': "http://${env.appIp}:8080", "rabbitMqIp": env.rabbitIp])
-                    s3Upload(file: 'state.json', bucket: 'prydin-build-states', path: 'vexpress/scheduling/prod/state.json')
+                    s3Upload(file: 'state.json', bucket: 'prydin-build-states', path: "vexpress/scheduling/${env.ENVIRONMENT}/state.json")
                 }
             }
         }
