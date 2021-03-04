@@ -61,6 +61,7 @@ pipeline {
                                             resourceName: 'JavaServer')[0]
                                     env.appIp = getInternalAddress(depId, "JavaServer")
                                     echo "Deployed: ${depId} address: ${env.appIp}"
+                                    env.appDepId = depId
                                 }
                             }
                         },
@@ -76,6 +77,7 @@ pipeline {
                                             resourceName: 'RabbitMQ')[0]
                                     env.rabbitIp = getInternalAddress(depId, "RabbitMQ")
                                     echo "Deployed: ${depId} address: ${env.appIp}"
+                                    env.rabbitDepId = depId
                                 }
                             }
                         },
@@ -118,7 +120,7 @@ pipeline {
             steps {
                 // Store build state
                 withAWS(credentials: 'jenkins') {
-                    writeJSON(file: 'state.json', json: ['url': "http://${env.appIp}:8080", "rabbitMqIp": env.rabbitIp])
+                    writeJSON(file: 'state.json', json: ['url': "http://${env.appIp}:8080", "rabbitMqIp": env.rabbitIp, 'deploymentIds': [env.rabbitDepId, env.appDepId]])
                     s3Upload(file: 'state.json', bucket: 'prydin-build-states', path: "vexpress/scheduling/${env.ENVIRONMENT}/state.json")
                 }
             }

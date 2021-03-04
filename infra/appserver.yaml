@@ -8,3 +8,4 @@ inputs:
   environment: "AWS"
   user: "$USER"
   password: "$PASSWORD"
+  size: "tiny"

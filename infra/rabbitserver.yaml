@@ -11,3 +11,4 @@ inputs:
   rabbitUser: "$RABBIT_USER"
   rabbitPassword: "$RABBIT_PASSWORD"
   rabbitVhost: "vexpress"
+  size: "tiny"
