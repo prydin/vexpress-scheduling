@@ -2,10 +2,10 @@ count: 1
 catalogItemName: "rabbitmq-latest-ubuntu-18"
 version: "5"
 deploymentName: "vexpress-rabbitmq-$ENVIRONMENT-#"
-projectName: "JenkinsTest"
+projectName: "$PROJECT"
 reason: "Deployment from Jenkins pipeline"
 inputs:
-  environment: "AWS"
+  environment: "$CLOUD"
   user: "$USER"
   password: "$PASSWORD"
   rabbitUser: "$RABBIT_USER"

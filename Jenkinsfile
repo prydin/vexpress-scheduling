@@ -3,6 +3,8 @@ pipeline {
 
     parameters {
         string(defaultValue: 'dev', description: 'Target environment', name: 'ENVIRONMENT', trim: true)
+        string(defaultValue: 'JenkinsTest', description: 'Project', name: 'PROJECT', trim: true)
+        string(defaultValue: 'AWS', description: 'Cloud', name: 'CLOUD', trim: true)
     }
 
     stages {
@@ -13,6 +15,8 @@ pipeline {
                     env.version = (gradle =~ /version\s*=\s*["'](.+)["']/)[0][1]
                     echo "Inferred version: ${env.version}"
                     env.ENVIRONMENT = params.ENVIRONMENT
+                    env.PROJECT = params.PROJECT ? params.PROJECT : "JenkinsTest" // TODO: Change to Virtual Express
+                    env.CLOUD = params.CLOUD ? params.CLOUD : "AWS"
                 }
             }
         }
@@ -54,6 +58,7 @@ pipeline {
                             withCredentials([usernamePassword(credentialsId: 'sshCreds', passwordVariable: 'PASSWORD', usernameVariable: 'USER')]) {
                                 script {
                                     def depId = vraDeployFromCatalog(
+                                            trustSelfSignedCert: true,
                                             configFormat: "yaml",
                                             config: readFile('infra/appserver.yaml'))[0].id
                                     vraWaitForAddress(
@@ -70,9 +75,11 @@ pipeline {
                                              usernamePassword(credentialsId: 'rabbitMqCreds', passwordVariable: 'RABBIT_PASSWORD', usernameVariable: 'RABBIT_USER')]) {
                                 script {
                                     def depId = vraDeployFromCatalog(
+                                            trustSelfSignedCert: true,
                                             configFormat: "yaml",
                                             config: readFile('infra/rabbitserver.yaml'))[0].id
                                     vraWaitForAddress(
+                                            trustSelfSignedCert: true,
                                             deploymentId: depId,
                                             resourceName: 'RabbitMQ')[0]
                                     env.rabbitIp = getInternalAddress(depId, "RabbitMQ")
@@ -119,7 +126,7 @@ pipeline {
         stage("Finalize") {
             steps {
                 // Store build state
-                withAWS(credentials: 'jenkins') {
+                withAWS(credentials: 'jenkins', region: 'us-west-1') {
                     writeJSON(file: 'state.json', json: ['url': "http://${env.appIp}:8080", "rabbitMqIp": env.rabbitIp, 'deploymentIds': [env.rabbitDepId, env.appDepId]])
                     s3Upload(file: 'state.json', bucket: 'prydin-build-states', path: "vexpress/scheduling/${env.ENVIRONMENT}/state.json")
                 }
@@ -130,6 +137,7 @@ pipeline {
 
 def getInternalAddress(id, resourceName) {
     def dep = vraGetDeployment(
+            trustSelfSignedCert: true,
             deploymentId: id,
             expandResources: true
     )
