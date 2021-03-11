@@ -1,6 +1,6 @@
 count: 1
 catalogItemName: "rabbitmq-latest-ubuntu-18"
-version: "5"
+version: "8"
 deploymentName: "vexpress-rabbitmq-$ENVIRONMENT-#"
 projectName: "$PROJECT"
 reason: "Deployment from Jenkins pipeline"
