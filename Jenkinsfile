@@ -62,6 +62,7 @@ pipeline {
                                             configFormat: "yaml",
                                             config: readFile('infra/appserver.yaml'))[0].id
                                     vraWaitForAddress(
+                                            trustSelfSignedCert: true,
                                             deploymentId: depId,
                                             resourceName: 'JavaServer')[0]
                                     env.appIp = getInternalAddress(depId, "JavaServer")
