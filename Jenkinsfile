@@ -5,6 +5,9 @@ pipeline {
         string(defaultValue: 'dev', description: 'Target environment', name: 'ENVIRONMENT', trim: true)
         string(defaultValue: 'JenkinsTest', description: 'Project', name: 'PROJECT', trim: true)
         string(defaultValue: 'AWS', description: 'Cloud', name: 'CLOUD', trim: true)
+        string(defaultValue: 'https://surf.wavefront.com', description: 'Tanzu Observability URL', name: 'TO_URL', trim: true)
+        string(defaultValue: '', description: 'Tanzu Observaility API Token', name: 'TO_TOKEN', trim: true)
+
     }
 
     stages {
@@ -17,6 +20,8 @@ pipeline {
                     env.ENVIRONMENT = params.ENVIRONMENT
                     env.PROJECT = params.PROJECT ? params.PROJECT : "JenkinsTest" // TODO: Change to Virtual Express
                     env.CLOUD = params.CLOUD ? params.CLOUD : "AWS"
+                    env.TO_TOKEN = params.TO_TOKEN
+                    env.TO_URL = params.TO_URL
                 }
             }
         }
@@ -105,7 +110,9 @@ pipeline {
                         def txt = readFile(file: 'templates/application-properties.tpl')
                         txt = txt.replace('$RABBITMQ_IP', env.rabbitIp).
                                 replace('$RABBITMQ_USER', env.RABBITMQ_USER).
-                                replace('$RABBITMQ_PASSWORD', env.RABBITMQ_PASSWORD)
+                                replace('$RABBITMQ_PASSWORD', env.RABBITMQ_PASSWORD).
+                                replace('$TO_URL', env.TO_URL).
+                                replace('$TO_TOKEN', ent.TO_TOKEN)
                         writeFile(file: "application.properties", text: txt)
 
                         def remote = [:]
