@@ -112,7 +112,7 @@ pipeline {
                                 replace('$RABBITMQ_USER', env.RABBITMQ_USER).
                                 replace('$RABBITMQ_PASSWORD', env.RABBITMQ_PASSWORD).
                                 replace('$TO_URL', env.TO_URL).
-                                replace('$TO_TOKEN', ent.TO_TOKEN)
+                                replace('$TO_TOKEN', env.TO_TOKEN)
                         writeFile(file: "application.properties", text: txt)
 
                         def remote = [:]
